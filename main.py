@@ -1,11 +1,21 @@
 import sys
+import cv2 
 from Adafruit_IO import MQTTClient
 import time
+from threading import Thread
 from uart import *
+from vision import detect
 
-AIO_FEED_IDs = ["ai", "sm", "humidity", "light", "temp", "led", "pump", "fan", "auto"]
+AIO_FEED_IDs = ["ai", "sm", "humidity", "light", "temp", "led", "pump", "fan", "auto", "image"]
 AIO_USERNAME = "YOURNAME"
-AIO_KEY = "YOUR KET"
+AIO_KEY = "YOURKEY"
+
+client = MQTTClient(AIO_USERNAME , AIO_KEY)
+
+vid = cv2.VideoCapture(0) 
+
+def vision():
+    detect(vid, client)
 
 def connected(client):
     print("Ket noi thanh cong ...")
@@ -48,7 +58,6 @@ def message(client , feed_id , payload):
         else:
             writeData("10") # auto on = 10
 
-client = MQTTClient(AIO_USERNAME , AIO_KEY)
 client.on_connect = connected
 client.on_disconnect = disconnected
 client.on_message = message
@@ -56,11 +65,11 @@ client.on_subscribe = subscribe
 client.connect()
 client.loop_background()
 
-
-while True:
-
-    readSerial(client)
-
-    time.sleep(1)
-
-    pass
+if __name__ == "__main__":
+    cv = Thread(target= vision, args=())
+    cv.start()
+    cv.join()
+    while True:
+        readSerial(client)
+        time.sleep(1)
+        pass
